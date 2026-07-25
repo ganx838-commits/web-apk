@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>摆摊利润计算器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
+body{background:#f2f3f5;padding:16px;max-width:480px;margin:0 auto}
+.box{background:#fff;border-radius:14px;padding:16px;margin-bottom:16px}
+.title{font-size:17px;font-weight:600;margin-bottom:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.col{flex:1;min-width:90px}
+label{font-size:13px;color:#555;display:block;margin-bottom:4px}
+input{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;outline:none}
+button{width:100%;padding:14px;border:none;border-radius:10px;font-size:16px;color:#fff;margin:8px 0}
+.blue{background:#0066cc}
+.green{background:#00aa44}
+.purple{background:#7744dd}
+.teal{background:#009988}
+.orange{background:#ff7700;width:auto;padding:6px 10px;font-size:14px}
+.red{background:#ee2222}
+.goods-item{background:#f0f6ff;padding:12px;border-radius:10px;margin:10px 0}
+#result{white-space:pre-line;padding:15px;background:#e8f4ff;border-radius:10px;display:none;margin:10px 0}
+.record-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.record-item{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 0;border-bottom:1px solid #eee}
+.record-text{font-size:14px;white-space:pre-line}
+.del-btn{padding:4px 8px;font-size:13px;background:#ff7875;color:#fff;border-radius:4px;border:none}
+.empty{text-align:center;color:#999;padding:24px 0}
+.two-btn{display:flex;gap:10px}
+.reward-modal{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.75);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:15px;
+  z-index:999;
+}
+.modal-inner{
+  background:#fff;
+  border-radius:16px;
+  padding:20px;
+  width:100%;
+  max-width:320px;
+  text-align:center;
+}
+.qrcode-area{
+  width:220px;
+  height:220px;
+  margin:0 auto 16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #eee;
+  border-radius:10px;
+  overflow:hidden;
+}
+.qrcode-area img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.qrcode-text{
+  font-size:15px;
+  color:#222;
+  margin:6px 0;
+}
+.close-modal{
+  margin-top:16px;
+  background:#999;
+}
+.reward-btn{
+  background:#ff3e6c;
+}
+</style>
+</head>
+<body>
+<div class="box">
+<div class="title">今日售卖商品（含当日损耗）</div>
+<div class="row">
+<div class="col">
+<label>当日损耗金额</label>
+<input id="lossNum" value="0" type="number" placeholder="填写当日损耗">
+</div>
+</div>
+<div id="goodsBox"></div>
+<button class="blue" onclick="addGoods()">新增商品</button>
+</div>
+
+<div class="box">
+<div class="title">单日固定开销</div>
+<div class="row">
+<div class="col">
+<label>摊位租金</label>
+<input id="rent" value="30" type="number">
+</div>
+<div class="col">
+<label>人工工资</label>
+<input id="worker" value="0" type="number">
+</div>
+<div class="col">
+<label>油费</label>
+<input id="oil" value="8" type="number">
+</div>
+</div>
+<div class="row">
+<div class="col">
+<label>水电耗材</label>
+<input id="light" value="5" type="number">
+</div>
+<div class="col">
+<label>包装物料</label>
+<input id="bag" value="12" type="number">
+</div>
+<div class="col">
+<label>试吃成本</label>
+<input id="taste" value="4" type="number">
+</div>
+</div>
+</div>
+
+<div class="box">
+<div class="title">月度开销（日均分摊）</div>
+<div class="row">
+<div class="col">
+<label>每月出摊天数</label>
+<input id="dayNum" value="26" type="number">
+</div>
+<div class="col">
+<label>每月房租</label>
+<input id="house" value="450" type="number">
+</div>
+<div class="col">
+<label>每月伙食</label>
+<input id="food" value="550" type="number">
+</div>
+</div>
+<div class="row">
+<div class="col">
+<label>家用水电</label>
+<input id="homeLight" value="100" type="number">
+</div>
+<div class="col">
+<label>设备折旧</label>
+<input id="device" value="70" type="number">
+</div>
+<div class="col">
+<label>杂项损耗</label>
+<input id="other" value="180" type="number">
+</div>
+</div>
+</div>
+
+<button class="green" onclick="calcProfit()">一键计算利润</button>
+<div id="result"></div>
+
+<div class="two-btn">
+<button class="purple" onclick="saveBill()">保存账单</button>
+<button class="teal" onclick="copyText()">复制账单</button>
+</div>
+
+<button class="reward-btn" onclick="openReward()">打赏支持作者</button>
+
+<div class="box">
+<div class="record-head">
+<div class="title">历史账单记录</div>
+</div>
+<div class="title">选择记账日期（手机日历）</div>
+<input type="date" id="selectDate">
+<div id="recordWrap"></div>
+</div>
+
+<div class="reward-modal" id="rewardPop">
+<div class="modal-inner">
+<h3>支付宝收款码</h3>
+<div class="qrcode-area">
+<img src="https://cdn.jsdelivr.net/gh/ganx838-commits/reward-page/qr.png" alt="支付宝收款码">
+</div>
+<div class="qrcode-text">祝老板生意兴隆</div>
+<div class="qrcode-text">vx：cltv911</div>
+<button class="close-modal" onclick="closeReward()">关闭</button>
+</div>
+</div>
+
+<script>
+function setTodayDate(){
+  let now = new Date();
+  let y = now.getFullYear();
+  let m = String(now.getMonth()+1).padStart(2,"0");
+  let d = String(now.getDate()).padStart(2,"0");
+  document.getElementById("selectDate").value = `${y}-${m}-${d}`;
+}
+setTodayDate();
+
+const storageKey = "stall_profit_record";
+let recordList = JSON.parse(localStorage.getItem(storageKey)) || [];
+let goodsIndex = 0;
+let currentBillText = "";
+const goodsBox = document.getElementById("goodsBox");
+const recordWrap = document.getElementById("recordWrap");
+const resultDom = document.getElementById("result");
+const rewardPop = document.getElementById("rewardPop");
+
+function openReward(){
+    rewardPop.style.display = "flex";
+}
+function closeReward(){
+    rewardPop.style.display = "none";
+}
+
+function addGoods(){
+    goodsIndex++;
+    let div = document.createElement("div");
+    div.className = "goods-item";
+    div.innerHTML = `
+    <div class="row">
+    <div class="col" style="flex:1.3">
+    <label>商品名称</label>
+    <input class="g-name" value="货品${goodsIndex}">
+    </div>
+    <div class="col">
+    <label>进货价</label>
+    <input class="g-cost" value="4" step="0.01" type="number">
+    </div>
+    <div class="col">
+    <label>售卖价</label>
+    <input class="g-price" value="13" step="0.01" type="number">
+    </div>
+    <div class="col">
+    <label>销量</label>
+    <input class="g-sell" value="10" type="number">
+    </div>
+    </div>`;
+    goodsBox.appendChild(div);
+}
+
+function calcProfit(){
+    let totalSale = 0;
+    let totalCost = 0;
+    let detailText = "";
+    let goodsAll = goodsBox.querySelectorAll(".goods-item");
+    goodsAll.forEach(item=>{
+        let name = item.querySelector(".g-name").value;
+        let cost = Number(item.querySelector(".g-cost").value);
+        let price = Number(item.querySelector(".g-price").value);
+        let num = Number(item.querySelector(".g-sell").value);
+        let sale = price * num;
+        let goodsCost = cost * num;
+        totalSale += sale;
+        totalCost += goodsCost;
+        detailText += `${name}｜售出${num}件｜营收${sale.toFixed(2)}｜毛利${(sale-goodsCost).toFixed(2)}\n`;
+    })
+    let loss = Number(document.getElementById("lossNum").value);
+    let rent = Number(document.getElementById("rent").value);
+    let worker = Number(document.getElementById("worker").value);
+    let oil = Number(document.getElementById("oil").value);
+    let light = Number(document.getElementById("light").value);
+    let bag = Number(document.getElementById("bag").value);
+    let taste = Number(document.getElementById("taste").value);
+    let dayNum = Number(document.getElementById("dayNum").value);
+    let house = Number(document.getElementById("house").value);
+    let food = Number(document.getElementById("food").value);
+    let homeLight = Number(document.getElementById("homeLight").value);
+    let device = Number(document.getElementById("device").value);
+    let other = Number(document.getElementById("other").value);
+
+    let dayFix = rent + worker + oil + light + bag + taste;
+    let monthFix = house + food + homeLight + device + other;
+    let monthDayFix = monthFix / dayNum;
+    let totalFix = dayFix + monthDayFix;
+    let pureProfit = totalSale - totalCost - totalFix - loss;
+
+    currentBillText = `===== 当日摆摊账单 =====
+${detailText}
+商品总营收：${totalSale.toFixed(2)}
+商品总进货成本：${totalCost.toFixed(2)}
+单日固定开销：${dayFix.toFixed(2)}
+月度日均分摊：${monthDayFix.toFixed(2)}
+当日损耗：${loss.toFixed(2)}
+总开销合计：${(totalCost+totalFix+loss).toFixed(2)}
+✅ 当日纯利润：${pureProfit.toFixed(2)}`;
+    resultDom.innerText = currentBillText;
+    resultDom.style.display = "block";
+}
+
+function saveBill(){
+    if(!currentBillText){
+        alert("请先点击【一键计算利润】生成账单");
+        return;
+    }
+    let date = document.getElementById("selectDate").value;
+    recordList.push({date,content:currentBillText});
+    localStorage.setItem(storageKey,JSON.stringify(recordList));
+    renderRecord();
+    alert("账单保存成功！");
+}
+
+function copyText(){
+    if(!currentBillText){
+        alert("暂无账单可复制");
+        return;
+    }
+    navigator.clipboard.writeText(currentBillText).then(()=>{
+        alert("账单已复制到剪贴板");
+    })
+}
+
+function renderRecord(){
+    recordWrap.innerHTML = "";
+    if(recordList.length === 0){
+        recordWrap.innerHTML = `<div class="empty">暂无历史账单</div>`;
+        return;
+    }
+    recordList.forEach((item,idx)=>{
+        let div = document.createElement("div");
+        div.className = "record-item";
+        div.innerHTML = `
+        <div class="record-text">日期：${item.date}\n${item.content}</div>
+        <button class="del-btn" onclick="delRecord(${idx})">删除</button>
+        `;
+        recordWrap.appendChild(div);
+    })
+}
+
+window.delRecord = function(idx){
+    recordList.splice(idx,1);
+    localStorage.setItem(storageKey,JSON.stringify(recordList));
+    renderRecord();
+}
+
+renderRecord();
+addGoods();
+</script>
+</body>
+</html>
