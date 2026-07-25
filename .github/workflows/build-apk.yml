@@ -1,0 +1,23 @@
+name: Build Web To APK
+on:
+  push:
+    branches: [ main ]
+jobs:
+  build_task:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取仓库全部代码
+        uses: actions/checkout@v4
+      - name: 安装Node环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: 安装网页打包工具
+        run: npm install -g @pwa/builder
+      - name: 执行打包APK
+        run: pwa-builder package . --platform android --packageId com.stall.calc
+      - name: 上传生成的安装包
+        uses: actions/upload-artifact@v4
+        with:
+          name: 摆摊利润计算器APK
+          path: ./out/android/*.apk
